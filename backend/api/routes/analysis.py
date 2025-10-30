@@ -45,6 +45,10 @@ async def analyze_transcript(request: TranscriptAnalysisRequest, db: Session = D
     """
     Analyze a pasted transcript, save to database, and return comprehensive feedback
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("=== Starting transcript analysis ===")
+
     if not request.transcript or not request.transcript.strip():
         raise HTTPException(status_code=400, detail="Transcript cannot be empty")
 
@@ -57,19 +61,26 @@ async def analyze_transcript(request: TranscriptAnalysisRequest, db: Session = D
     try:
         # Generate a unique session ID for this pasted transcript
         session_id = f"pasted-{str(uuid.uuid4())[:8]}"
+        logger.info(f"Generated session ID: {session_id}")
 
         # Create a call record in the database
+        logger.info("Creating call record in database...")
         call = CallService.create_call(db, session_id)
+        logger.info(f"Call created with ID: {call.id}")
 
         # Get comprehensive analysis (includes sentiment, key_points, objections, etc.)
+        logger.info("Sending transcript to AI for analysis...")
         analysis = await ai_service.analyze_transcript(request.transcript)
+        logger.info(f"AI analysis returned: {list(analysis.keys())}")
 
         # Check if analysis failed
         if "error" in analysis:
+            logger.error(f"AI analysis returned error: {analysis['error']}")
             raise HTTPException(status_code=500, detail=analysis["error"])
 
         # Extract sentiment data from the main analysis
         sentiment_score = float(analysis.get("sentiment_score", 0.5))
+        logger.info(f"Sentiment score: {sentiment_score}")
 
         # Save the full transcript as a transcription record
         CallService.add_transcription(
@@ -119,4 +130,7 @@ async def analyze_transcript(request: TranscriptAnalysisRequest, db: Session = D
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Analysis failed with error: {error_trace}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
