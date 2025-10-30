@@ -1,10 +1,16 @@
 """
 Transcript Analysis API Routes
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
+from sqlalchemy.orm import Session
 from services.ai_analysis.ai_service import AIAnalysisService
+from services.call_service import CallService
+from models.database import get_db
+from datetime import datetime
+import json
+import uuid
 import os
 
 router = APIRouter()
@@ -24,6 +30,7 @@ class SentimentResult(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
+    session_id: str
     sentiment: SentimentResult
     key_points: List[str]
     objections: List[str]
@@ -34,9 +41,9 @@ class AnalysisResponse(BaseModel):
 
 
 @router.post("/transcript", response_model=AnalysisResponse)
-async def analyze_transcript(request: TranscriptAnalysisRequest):
+async def analyze_transcript(request: TranscriptAnalysisRequest, db: Session = Depends(get_db)):
     """
-    Analyze a pasted transcript and return comprehensive feedback
+    Analyze a pasted transcript, save to database, and return comprehensive feedback
     """
     if not request.transcript or not request.transcript.strip():
         raise HTTPException(status_code=400, detail="Transcript cannot be empty")
@@ -48,6 +55,12 @@ async def analyze_transcript(request: TranscriptAnalysisRequest):
         )
 
     try:
+        # Generate a unique session ID for this pasted transcript
+        session_id = f"pasted-{str(uuid.uuid4())[:8]}"
+
+        # Create a call record in the database
+        call = CallService.create_call(db, session_id)
+
         # Get comprehensive analysis (includes sentiment, key_points, objections, etc.)
         analysis = await ai_service.analyze_transcript(request.transcript)
 
@@ -58,7 +71,39 @@ async def analyze_transcript(request: TranscriptAnalysisRequest):
         # Extract sentiment data from the main analysis
         sentiment_score = float(analysis.get("sentiment_score", 0.5))
 
+        # Save the full transcript as a transcription record
+        CallService.add_transcription(
+            db=db,
+            session_id=session_id,
+            transcript=request.transcript,
+            is_final=True,
+            confidence=1.0,
+            speaker="Manual Paste"
+        )
+
+        # Save analysis results to call_analytics
+        CallService.save_analysis(
+            db=db,
+            session_id=session_id,
+            analysis_data={
+                "sentiment": analysis.get("sentiment", "Neutral"),
+                "sentiment_score": sentiment_score,
+                "sentiment_explanation": analysis.get("sentiment_explanation", ""),
+                "key_points": analysis.get("key_points", []),
+                "objections": analysis.get("objections", []),
+                "strengths": analysis.get("strengths", []),
+                "areas_for_improvement": analysis.get("areas_for_improvement", []),
+                "coaching_tips": analysis.get("coaching_tips", []),
+                "next_steps": analysis.get("next_steps", []),
+                "keywords": analysis.get("keywords", [])
+            }
+        )
+
+        # Mark the call as completed
+        CallService.end_call(db, session_id)
+
         return AnalysisResponse(
+            session_id=session_id,
             sentiment=SentimentResult(
                 overall=analysis.get("sentiment", "Neutral"),
                 score=sentiment_score,
