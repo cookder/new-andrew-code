@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from models.call import Call, Transcription, CallAnalytics
 from datetime import datetime
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -119,12 +120,12 @@ class CallService:
             analytics = CallAnalytics(call_id=call.id)
             db.add(analytics)
 
-        # Update analytics with AI results
+        # Update analytics with AI results (convert lists to JSON strings)
         analytics.sentiment = analysis_data.get("sentiment")
         analytics.sentiment_score = analysis_data.get("sentiment_score")
-        analytics.key_points = analysis_data.get("key_points")
-        analytics.objections_detected = analysis_data.get("objections")
-        analytics.coaching_notes = analysis_data.get("coaching_tips")
+        analytics.key_points = json.dumps(analysis_data.get("key_points", []))
+        analytics.objections_detected = json.dumps(analysis_data.get("objections", []))
+        analytics.coaching_notes = json.dumps(analysis_data.get("coaching_tips", []))
 
         db.commit()
         db.refresh(analytics)
