@@ -2,6 +2,11 @@
 Main FastAPI application entry point for Sales Call Feedback AI
 WITH DATABASE INTEGRATION
 """
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
