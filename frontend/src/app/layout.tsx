@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import Navigation from '../components/Dashboard/Navigation';
 
 export const metadata: Metadata = {
   title: 'Sales Call Feedback AI',
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-100 min-h-screen">
+        <Navigation />
         {children}
       </body>
     </html>
