@@ -48,39 +48,31 @@ async def analyze_transcript(request: TranscriptAnalysisRequest):
         )
 
     try:
-        # Get full analysis
+        # Get comprehensive analysis (includes sentiment, key_points, objections, etc.)
         analysis = await ai_service.analyze_transcript(request.transcript)
 
-        # Get sentiment
-        sentiment_data = await ai_service.get_sentiment(request.transcript)
+        # Check if analysis failed
+        if "error" in analysis:
+            raise HTTPException(status_code=500, detail=analysis["error"])
 
-        # Parse sentiment score
-        sentiment_score = 0.5  # Default neutral
-        if sentiment_data.get("sentiment", "").lower() == "positive":
-            sentiment_score = 0.8
-        elif sentiment_data.get("sentiment", "").lower() == "negative":
-            sentiment_score = 0.3
-        elif sentiment_data.get("sentiment", "").lower() == "very positive":
-            sentiment_score = 0.95
-        elif sentiment_data.get("sentiment", "").lower() == "very negative":
-            sentiment_score = 0.1
-
-        # Get coaching tip
-        coaching_tip = await ai_service.generate_coaching_tip(request.transcript)
+        # Extract sentiment data from the main analysis
+        sentiment_score = float(analysis.get("sentiment_score", 0.5))
 
         return AnalysisResponse(
             sentiment=SentimentResult(
-                overall=sentiment_data.get("sentiment", "Neutral"),
+                overall=analysis.get("sentiment", "Neutral"),
                 score=sentiment_score,
-                explanation=sentiment_data.get("explanation", "")
+                explanation=analysis.get("sentiment_explanation", "No explanation provided")
             ),
             key_points=analysis.get("key_points", []),
             objections=analysis.get("objections", []),
             strengths=analysis.get("strengths", []),
             areas_for_improvement=analysis.get("areas_for_improvement", []),
-            coaching_tips=[coaching_tip] if coaching_tip else [],
+            coaching_tips=analysis.get("coaching_tips", []),
             next_steps=analysis.get("next_steps", [])
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
