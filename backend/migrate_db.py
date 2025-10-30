@@ -5,7 +5,7 @@ Adds new fields to CallAnalytics table
 import sqlite3
 import os
 
-db_path = "sales_calls.db"
+db_path = "sales_feedback.db"  # Updated to correct database name
 
 if os.path.exists(db_path):
     conn = sqlite3.connect(db_path)
