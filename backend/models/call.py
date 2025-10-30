@@ -65,11 +65,14 @@ class CallAnalytics(Base):
     # Sentiment metrics
     average_sentiment = Column(Float, nullable=True)  # -1 to 1
     sentiment_trend = Column(String(50), nullable=True)  # improving, declining, stable
+    sentiment = Column(String(50), nullable=True)  # Positive, Neutral, Negative, etc.
+    sentiment_score = Column(Float, nullable=True)  # 0.0 to 1.0
 
     # Keyword tracking
     keywords_detected = Column(JSON, nullable=True)  # {keyword: count}
     competitor_mentions = Column(JSON, nullable=True)  # {competitor: count}
-    objections_detected = Column(JSON, nullable=True)  # List of objections
+    objections_detected = Column(Text, nullable=True)  # JSON string of objections
+    key_points = Column(Text, nullable=True)  # JSON string of key points
 
     # Performance scoring
     performance_score = Column(Float, nullable=True)  # 0-100
