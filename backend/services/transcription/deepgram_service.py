@@ -6,7 +6,7 @@ import asyncio
 import logging
 import json
 from typing import Optional, Callable
-from deepgram import DeepgramClient, DeepgramClientOptions, LiveTranscriptionEvents, LiveOptions
+from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
 import os
 
 logger = logging.getLogger(__name__)
@@ -56,10 +56,7 @@ class DeepgramTranscriptionService:
 
         try:
             # Create Deepgram client
-            config = DeepgramClientOptions(
-                options={"keepalive": "true"}
-            )
-            deepgram = DeepgramClient(self.api_key, config)
+            deepgram = DeepgramClient(self.api_key)
 
             # Create live transcription connection
             connection = deepgram.listen.asynclive.v("1")
