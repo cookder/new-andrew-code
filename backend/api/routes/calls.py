@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from models.database import get_db
 from services.call_service import CallService
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -16,8 +16,8 @@ class CallResponse(BaseModel):
     id: int
     session_id: str
     started_at: datetime
-    ended_at: datetime | None
-    duration_seconds: float | None
+    ended_at: Optional[datetime]
+    duration_seconds: Optional[float]
     total_bytes: int
     chunks_count: int
     status: str
@@ -31,9 +31,9 @@ class TranscriptResponse(BaseModel):
     id: int
     transcript: str
     is_final: bool
-    confidence: float | None
+    confidence: Optional[float]
     timestamp: datetime
-    speaker: str | None
+    speaker: Optional[str]
 
     class Config:
         from_attributes = True
