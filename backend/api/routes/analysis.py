@@ -9,11 +9,8 @@ import os
 
 router = APIRouter()
 
-# Initialize AI service
-ai_service = AIAnalysisService(
-    provider=os.getenv("AI_PROVIDER", "openai"),
-    api_key=os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
-)
+# Initialize AI service (reads API keys from environment)
+ai_service = AIAnalysisService()
 
 
 class TranscriptAnalysisRequest(BaseModel):
