@@ -45,5 +45,19 @@ export const api = {
   async healthCheck(): Promise<{ status: string }> {
     const response = await fetch(`${API_BASE_URL}/health`);
     return response.json();
+  },
+
+  async deleteCall(sessionId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/calls/${sessionId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete call');
+  },
+
+  async deleteAllCalls(): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/calls/`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete all calls');
   }
 };

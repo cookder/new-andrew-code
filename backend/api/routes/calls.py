@@ -1,10 +1,11 @@
 """
 Call History API Routes
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models.database import get_db
 from services.call_service import CallService
+from models.call import Call
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -97,3 +98,27 @@ async def get_call_detail(session_id: str, db: Session = Depends(get_db)):
             for t in call.transcriptions
         ]
     }
+
+
+@router.delete("/{session_id}")
+async def delete_call(session_id: str, db: Session = Depends(get_db)):
+    """Delete a specific call and all its related data"""
+    call = db.query(Call).filter(Call.session_id == session_id).first()
+
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+
+    # Delete the call (cascade will delete transcriptions and analytics)
+    db.delete(call)
+    db.commit()
+
+    return {"message": f"Call {session_id} deleted successfully"}
+
+
+@router.delete("/")
+async def delete_all_calls(db: Session = Depends(get_db)):
+    """Delete all calls and reset the database"""
+    deleted_count = db.query(Call).delete()
+    db.commit()
+
+    return {"message": f"All calls deleted successfully", "count": deleted_count}
