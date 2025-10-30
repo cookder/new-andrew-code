@@ -12,6 +12,7 @@ export default function Navigation() {
 
   const links = [
     { href: '/', label: 'Live Call' },
+    { href: '/analyze', label: 'Analyze Transcript' },
     { href: '/history', label: 'Call History' }
   ];
 
