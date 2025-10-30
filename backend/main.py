@@ -10,6 +10,7 @@ import uuid
 
 from utils.websocket_manager import manager
 from services.audio.audio_handler import audio_handler
+from services.transcription.deepgram_service import deepgram_service
 
 # Configure logging
 logging.basicConfig(
@@ -62,12 +63,37 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     # Create audio session
     audio_handler.create_session(session_id)
 
+    # Start transcription if enabled
+    transcription_enabled = deepgram_service.is_enabled()
+
+    if transcription_enabled:
+        async def on_transcript(transcript_data):
+            """Callback for transcription results"""
+            await manager.send_message(session_id, {
+                "type": "transcription",
+                **transcript_data
+            })
+
+        async def on_transcription_error(error_msg):
+            """Callback for transcription errors"""
+            await manager.send_message(session_id, {
+                "type": "transcription_error",
+                "message": error_msg
+            })
+
+        await deepgram_service.start_transcription(
+            session_id,
+            on_transcript,
+            on_transcription_error
+        )
+
     # Send connection confirmation
     await manager.send_message(session_id, {
         "type": "connection",
         "status": "connected",
         "session_id": session_id,
-        "message": "WebSocket connection established"
+        "message": "WebSocket connection established",
+        "transcription_enabled": transcription_enabled
     })
 
     try:
@@ -123,6 +149,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 audio_bytes = data["bytes"]
                 result = await audio_handler.process_audio_chunk(session_id, audio_bytes)
 
+                # Forward audio to Deepgram for transcription
+                if transcription_enabled:
+                    await deepgram_service.send_audio(session_id, audio_bytes)
+
                 # Send acknowledgment periodically
                 if result['chunks_received'] % 10 == 0:
                     await manager.send_message(session_id, {
@@ -136,6 +166,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         logger.error(f"Error in WebSocket connection {session_id}: {e}")
     finally:
         # Cleanup
+        if transcription_enabled:
+            await deepgram_service.stop_transcription(session_id)
         manager.disconnect(session_id)
         audio_handler.close_session(session_id)
         logger.info(f"Session cleanup completed: {session_id}")

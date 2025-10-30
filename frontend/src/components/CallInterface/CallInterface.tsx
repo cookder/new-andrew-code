@@ -5,9 +5,11 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { wsService } from '../../services/websocket';
 import { useAudioStreaming } from '../../hooks/useAudioStreaming';
+import TranscriptView, { TranscriptLine } from '../Transcription/TranscriptView';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function CallInterface() {
   const {
@@ -19,6 +21,54 @@ export default function CallInterface() {
     startStreaming,
     stopStreaming,
   } = useAudioStreaming(wsService);
+
+  const [transcripts, setTranscripts] = useState<TranscriptLine[]>([]);
+  const [transcriptionEnabled, setTranscriptionEnabled] = useState(false);
+
+  // Listen for transcription messages
+  useEffect(() => {
+    const handleTranscription = (message: any) => {
+      const newTranscript: TranscriptLine = {
+        id: uuidv4(),
+        transcript: message.transcript,
+        is_final: message.is_final,
+        confidence: message.confidence,
+        timestamp: new Date(),
+      };
+
+      setTranscripts((prev) => {
+        // If this is an interim result, replace the last interim result
+        if (!message.is_final && prev.length > 0 && !prev[prev.length - 1].is_final) {
+          return [...prev.slice(0, -1), newTranscript];
+        }
+        // Otherwise add as a new line
+        return [...prev, newTranscript];
+      });
+    };
+
+    const handleConnection = (message: any) => {
+      setTranscriptionEnabled(message.transcription_enabled || false);
+      if (!message.transcription_enabled) {
+        console.warn('Transcription is not enabled. Set DEEPGRAM_API_KEY to enable.');
+      }
+    };
+
+    wsService.on('transcription', handleTranscription);
+    wsService.on('connection', handleConnection);
+
+    return () => {
+      wsService.off('transcription', handleTranscription);
+      wsService.off('connection', handleConnection);
+    };
+  }, []);
+
+  // Clear transcripts when streaming stops
+  useEffect(() => {
+    if (!isStreaming) {
+      // Don't clear immediately - keep the transcript visible
+      // setTranscripts([]);
+    }
+  }, [isStreaming]);
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -167,6 +217,24 @@ export default function CallInterface() {
           </div>
         </div>
       </div>
+
+      {/* Transcription Display */}
+      {transcriptionEnabled && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Live Transcript</h2>
+            <div className="flex items-center gap-2">
+              {isStreaming && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">Listening</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <TranscriptView transcripts={transcripts} />
+        </div>
+      )}
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
