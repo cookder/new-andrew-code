@@ -6,8 +6,15 @@ import asyncio
 import logging
 import json
 from typing import Optional, Callable
-from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
 import os
+
+# Try to import Deepgram, but make it optional
+try:
+    from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
+    DEEPGRAM_AVAILABLE = True
+except ImportError as e:
+    DEEPGRAM_AVAILABLE = False
+    logging.warning(f"Deepgram SDK not available: {e}. Transcription will be disabled.")
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +29,12 @@ class DeepgramTranscriptionService:
         Args:
             api_key: Deepgram API key. If None, reads from DEEPGRAM_API_KEY env var
         """
+        if not DEEPGRAM_AVAILABLE:
+            logger.warning("Deepgram SDK not available. Transcription will not work.")
+            self.enabled = False
+            self.connections = {}
+            return
+
         self.api_key = api_key or os.getenv("DEEPGRAM_API_KEY")
 
         if not self.api_key:
