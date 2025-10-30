@@ -104,3 +104,30 @@ class CallService:
             .filter(Call.session_id == session_id)\
             .first()
         return call
+
+    @staticmethod
+    def save_analysis(db: Session, session_id: str, analysis_data: dict):
+        """Save AI analysis results to call_analytics"""
+        call = db.query(Call).filter(Call.session_id == session_id).first()
+        if not call:
+            logger.error(f"Call not found for session: {session_id}")
+            return None
+
+        # Get or create analytics record
+        analytics = db.query(CallAnalytics).filter(CallAnalytics.call_id == call.id).first()
+        if not analytics:
+            analytics = CallAnalytics(call_id=call.id)
+            db.add(analytics)
+
+        # Update analytics with AI results
+        analytics.sentiment = analysis_data.get("sentiment")
+        analytics.sentiment_score = analysis_data.get("sentiment_score")
+        analytics.key_points = analysis_data.get("key_points")
+        analytics.objections_detected = analysis_data.get("objections")
+        analytics.coaching_notes = analysis_data.get("coaching_tips")
+
+        db.commit()
+        db.refresh(analytics)
+
+        logger.info(f"Analysis saved for call: {call.id}")
+        return analytics

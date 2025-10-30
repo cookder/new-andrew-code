@@ -77,8 +77,7 @@ async def analyze_transcript(request: TranscriptAnalysisRequest, db: Session = D
             session_id=session_id,
             transcript=request.transcript,
             is_final=True,
-            confidence=1.0,
-            speaker="Manual Paste"
+            confidence=1.0
         )
 
         # Save analysis results to call_analytics
