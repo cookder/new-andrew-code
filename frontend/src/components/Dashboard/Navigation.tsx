@@ -11,6 +11,7 @@ export default function Navigation() {
   const pathname = usePathname();
 
   const links = [
+    { href: '/dashboard', label: 'Dashboard' },
     { href: '/', label: 'Live Call' },
     { href: '/analyze', label: 'Analyze Transcript' },
     { href: '/history', label: 'Call History' }

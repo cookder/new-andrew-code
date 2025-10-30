@@ -19,7 +19,7 @@ from services.audio.audio_handler import audio_handler
 from services.transcription.deepgram_service import deepgram_service
 from services.call_service import CallService
 from models.database import get_db, engine, Base
-from api.routes import calls, analysis
+from api.routes import calls, analysis, dashboard
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -49,6 +49,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(calls.router, prefix="/api/calls", tags=["calls"])
 app.include_router(analysis.router, prefix="/api/analyze", tags=["analysis"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 
 @app.get("/")
