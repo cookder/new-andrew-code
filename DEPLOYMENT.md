@@ -1,546 +1,426 @@
-```
-# 🚀 Deployment Guide
+# Deployment Guide - Sales Call Feedback AI
 
-Complete guide to deploying your AI Sales Call Feedback system to production.
+This guide will help you deploy the app so your friends can access it from their Chrome browsers.
 
----
+## 🚀 Quick Start Options
 
-## 🎯 Deployment Options
+### Option 1: Railway (Recommended - Easiest)
+**Cost**: ~$5-10/month | **Setup Time**: 10 minutes | **Best for**: Quick deployment
 
-### Option 1: Vercel (Frontend) + Railway/Render (Backend)
-**Best for:** Quick deployment, auto-scaling
-**Cost:** Free tier available
-**Time:** 15-30 minutes
+### Option 2: DigitalOcean/VPS
+**Cost**: ~$12/month | **Setup Time**: 20 minutes | **Best for**: Full control
 
-### Option 2: AWS (Full Stack)
-**Best for:** Enterprise, full control
-**Cost:** ~$50-100/month
-**Time:** 1-2 hours
-
-### Option 3: Docker + DigitalOcean/Linode
-**Best for:** Cost-effective, simple
-**Cost:** $12-20/month
-**Time:** 30-60 minutes
+### Option 3: Local Network Only (Free)
+**Cost**: Free | **Setup Time**: 5 minutes | **Best for**: Testing with friends on same WiFi
 
 ---
 
-## 📦 Option 1: Vercel + Railway (Recommended)
+## ☁️ Option 1: Deploy to Railway (EASIEST)
 
-### Frontend Deployment (Vercel)
+Railway is a platform that makes deployment super simple.
 
-**Step 1: Prepare Repository**
-```bash
-# Ensure all changes are committed
-git add -A
-git commit -m "Prepare for deployment"
-git push origin main
+### Step 1: Prepare Your Environment File
+
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your API keys:
+   ```bash
+   # Required: Get from https://platform.deepgram.com
+   DEEPGRAM_API_KEY=your_deepgram_key_here
+
+   # Optional but recommended: Get from https://platform.openai.com
+   OPENAI_API_KEY=your_openai_key_here
+
+   # Generate a random secret
+   JWT_SECRET=your_random_secret_here_change_this
+   ```
+
+### Step 2: Deploy to Railway
+
+1. **Create a Railway account** at https://railway.app (free to start)
+
+2. **Install Railway CLI**:
+   ```bash
+   npm i -g @railway/cli
+   ```
+
+3. **Login to Railway**:
+   ```bash
+   railway login
+   ```
+
+4. **Initialize and deploy**:
+   ```bash
+   railway init
+   railway up
+   ```
+
+5. **Add PostgreSQL database**:
+   - Go to your Railway dashboard
+   - Click "New" → "Database" → "Add PostgreSQL"
+   - Railway will automatically set DATABASE_URL
+
+6. **Add Redis**:
+   - Click "New" → "Database" → "Add Redis"
+   - Railway will automatically set REDIS_URL
+
+7. **Set environment variables**:
+   - In Railway dashboard, go to your service
+   - Click "Variables" tab
+   - Add all variables from your `.env` file
+
+8. **Get your public URL**:
+   - Railway will provide a URL like `https://your-app.up.railway.app`
+   - Share this URL with your friends!
+
+### Step 3: Update CORS Settings
+
+After deployment, update your environment variables in Railway:
 ```
-
-**Step 2: Deploy to Vercel**
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-cd frontend
-vercel
-
-# Follow prompts:
-# - Link to existing project or create new
-# - Set build command: npm run build
-# - Set output directory: .next
-```
-
-**Step 3: Configure Environment Variables**
-In Vercel dashboard:
-- `NEXT_PUBLIC_API_URL` = Your backend URL
-- `NEXT_PUBLIC_WS_URL` = Your WebSocket URL
-
-**Step 4: Deploy**
-```bash
-vercel --prod
-```
-
-### Backend Deployment (Railway)
-
-**Step 1: Create Railway Project**
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login
-railway login
-
-# Initialize
-cd backend
-railway init
-```
-
-**Step 2: Configure**
-Create `railway.json`:
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
-  }
-}
-```
-
-**Step 3: Set Environment Variables**
-```bash
-railway variables set DEEPGRAM_API_KEY=your_key_here
-railway variables set OPENAI_API_KEY=your_key_here
-railway variables set DATABASE_URL=postgresql://...
-```
-
-**Step 4: Deploy**
-```bash
-railway up
-```
-
-**Step 5: Get URLs**
-```bash
-railway domain  # Get your backend URL
+CORS_ORIGINS=https://your-app.up.railway.app
+NEXT_PUBLIC_API_URL=https://your-app.up.railway.app
+NEXT_PUBLIC_WS_URL=wss://your-app.up.railway.app/ws
 ```
 
 ---
 
-## 🐳 Option 2: Docker Deployment
+## 🖥️ Option 2: Deploy to DigitalOcean/VPS
 
-### Create Docker Files
+### Prerequisites
+- A DigitalOcean droplet or VPS (Ubuntu 22.04 recommended)
+- Domain name (optional but recommended)
 
-**backend/Dockerfile**
-```dockerfile
-FROM python:3.11-slim
+### Step 1: Set Up Your Server
 
-WORKDIR /app
+1. **SSH into your server**:
+   ```bash
+   ssh root@your_server_ip
+   ```
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+2. **Install Docker and Docker Compose**:
+   ```bash
+   # Update system
+   apt update && apt upgrade -y
 
-COPY . .
+   # Install Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sh get-docker.sh
 
-EXPOSE 8000
+   # Install Docker Compose
+   apt install docker-compose -y
+   ```
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+3. **Install Git**:
+   ```bash
+   apt install git -y
+   ```
 
-**frontend/Dockerfile**
-```dockerfile
-FROM node:18-alpine AS builder
+### Step 2: Deploy Your App
 
-WORKDIR /app
+1. **Clone your repository**:
+   ```bash
+   git clone <your-repo-url>
+   cd new-andrew-code
+   ```
 
-COPY package*.json ./
-RUN npm ci
+2. **Create and configure .env file**:
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
 
-COPY . .
-RUN npm run build
+   Update these values:
+   ```bash
+   # Your API keys
+   DEEPGRAM_API_KEY=your_key_here
+   OPENAI_API_KEY=your_key_here
 
-FROM node:18-alpine
+   # Use your server's IP or domain
+   CORS_ORIGINS=http://your_server_ip:3000
+   NEXT_PUBLIC_API_URL=http://your_server_ip:8000
+   NEXT_PUBLIC_WS_URL=ws://your_server_ip:8000/ws
 
-WORKDIR /app
+   # Security
+   JWT_SECRET=generate_random_secret_here
+   POSTGRES_PASSWORD=strong_password_here
+   ```
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+3. **Build and start the application**:
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d --build
+   ```
 
-EXPOSE 3000
+4. **Check if everything is running**:
+   ```bash
+   docker-compose -f docker-compose.prod.yml ps
+   ```
 
-CMD ["npm", "start"]
-```
+   You should see all services running:
+   - postgres
+   - redis
+   - backend
+   - frontend
 
-**docker-compose.yml** (already created)
-```yaml
-version: '3.8'
+### Step 3: Access Your App
 
-services:
-  postgres:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: sales_feedback_db
-      POSTGRES_USER: sales_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+- Open browser: `http://your_server_ip:3000`
+- Share this URL with friends!
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+### Step 4: (Optional) Set Up Domain with HTTPS
 
-  backend:
-    build: ./backend
-    environment:
-      - DATABASE_URL=postgresql://sales_user:${DB_PASSWORD}@postgres:5432/sales_feedback_db
-      - REDIS_URL=redis://redis:6379
-      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - redis
+1. **Install Nginx**:
+   ```bash
+   apt install nginx -y
+   ```
 
-  frontend:
-    build: ./frontend
-    environment:
-      - NEXT_PUBLIC_API_URL=https://your-backend-url.com
-      - NEXT_PUBLIC_WS_URL=wss://your-backend-url.com
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+2. **Install Certbot for SSL**:
+   ```bash
+   apt install certbot python3-certbot-nginx -y
+   ```
 
-volumes:
-  postgres_data:
-```
+3. **Configure Nginx** (create `/etc/nginx/sites-available/sales-app`):
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
 
-### Deploy to DigitalOcean
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
 
-**Step 1: Create Droplet**
-- Choose Ubuntu 22.04
-- Select plan ($12-20/month)
-- Add SSH key
+       location /api {
+           proxy_pass http://localhost:8000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
 
-**Step 2: Setup Server**
+       location /ws {
+           proxy_pass http://localhost:8000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+4. **Enable the site**:
+   ```bash
+   ln -s /etc/nginx/sites-available/sales-app /etc/nginx/sites-enabled/
+   nginx -t
+   systemctl reload nginx
+   ```
+
+5. **Get SSL certificate**:
+   ```bash
+   certbot --nginx -d your-domain.com
+   ```
+
+6. **Update .env with HTTPS URLs**:
+   ```bash
+   CORS_ORIGINS=https://your-domain.com
+   NEXT_PUBLIC_API_URL=https://your-domain.com
+   NEXT_PUBLIC_WS_URL=wss://your-domain.com/ws
+   ```
+
+7. **Restart services**:
+   ```bash
+   docker-compose -f docker-compose.prod.yml down
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+---
+
+## 🏠 Option 3: Local Network Access (Free)
+
+This allows friends on your WiFi to access the app.
+
+### Step 1: Find Your Local IP
+
+**On Mac/Linux**:
 ```bash
-# SSH into server
-ssh root@your-server-ip
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-
-# Install Docker Compose
-apt install docker-compose
-
-# Clone repository
-git clone your-repo-url
-cd your-repo
+ifconfig | grep "inet " | grep -v 127.0.0.1
 ```
 
-**Step 3: Configure Environment**
+**On Windows**:
 ```bash
-# Create .env file
-cat > .env <<EOF
-DB_PASSWORD=your_secure_password
-DEEPGRAM_API_KEY=your_key
-OPENAI_API_KEY=your_key
-EOF
+ipconfig
 ```
 
-**Step 4: Deploy**
+Look for your local IP (usually starts with `192.168.x.x`)
+
+### Step 2: Update Environment
+
+Edit `.env`:
+```bash
+CORS_ORIGINS=http://192.168.x.x:3000
+NEXT_PUBLIC_API_URL=http://192.168.x.x:8000
+NEXT_PUBLIC_WS_URL=ws://192.168.x.x:8000/ws
+```
+
+### Step 3: Start the App
+
 ```bash
 docker-compose up -d
 ```
 
-**Step 5: Setup Domain**
-- Point your domain to server IP
-- Install Nginx for reverse proxy
-- Get SSL certificate with Certbot
+### Step 4: Share with Friends
+
+Give them the URL: `http://192.168.x.x:3000`
+
+**Note**: This only works when:
+- You're all on the same WiFi network
+- Your computer is running
+- Your firewall allows connections (you may need to allow ports 3000 and 8000)
 
 ---
 
-## ☁️ Option 3: AWS Deployment
+## 📱 Accessing from Chrome Browser
 
-### Architecture
-```
-CloudFront (CDN)
-    ↓
-S3 (Frontend) + API Gateway
-    ↓
-Lambda (Backend) or ECS (Containers)
-    ↓
-RDS (PostgreSQL) + ElastiCache (Redis)
-```
+Once deployed, your friends can:
 
-### Using AWS Amplify (Easiest)
+1. Open Chrome on any device
+2. Go to your deployment URL:
+   - Railway: `https://your-app.up.railway.app`
+   - VPS: `http://your-server-ip:3000` or `https://your-domain.com`
+   - Local: `http://192.168.x.x:3000`
 
-**Step 1: Install Amplify CLI**
-```bash
-npm install -g @aws-amplify/cli
-amplify configure
-```
-
-**Step 2: Initialize**
-```bash
-cd frontend
-amplify init
-```
-
-**Step 3: Add Hosting**
-```bash
-amplify add hosting
-# Choose: Amazon CloudFront and S3
-
-amplify publish
-```
-
-### Using ECS (Containers)
-
-**Step 1: Push to ECR**
-```bash
-# Login to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin your-account.dkr.ecr.us-east-1.amazonaws.com
-
-# Build and push
-docker build -t sales-call-backend ./backend
-docker tag sales-call-backend:latest your-account.dkr.ecr.us-east-1.amazonaws.com/sales-call-backend:latest
-docker push your-account.dkr.ecr.us-east-1.amazonaws.com/sales-call-backend:latest
-```
-
-**Step 2: Create ECS Service**
-- Use AWS Console or CloudFormation
-- Configure task definitions
-- Set environment variables
-- Configure load balancer
+3. Grant microphone permissions when prompted
 
 ---
 
-## 🔒 Security Checklist
+## 🔧 Troubleshooting
 
-### Before Deployment:
-
-- [ ] Change all default passwords
-- [ ] Set up environment variables properly
-- [ ] Enable HTTPS/SSL
-- [ ] Configure CORS properly
-- [ ] Set up database backups
-- [ ] Enable rate limiting
-- [ ] Configure firewall rules
-- [ ] Set up monitoring/alerts
-- [ ] Review API key permissions
-- [ ] Enable database encryption
-- [ ] Set up VPC (if using AWS)
-- [ ] Configure secrets management
-
-### Environment Variables Needed:
-
-**Backend:**
+### Services won't start
 ```bash
-DATABASE_URL=postgresql://user:pass@host:5432/db
-REDIS_URL=redis://host:6379
-DEEPGRAM_API_KEY=your_key
-OPENAI_API_KEY=your_key  # or ANTHROPIC_API_KEY
-JWT_SECRET=random_secure_string
-CORS_ORIGINS=https://your-frontend.com
+# Check logs
+docker-compose -f docker-compose.prod.yml logs
+
+# Restart services
+docker-compose -f docker-compose.prod.yml restart
 ```
 
-**Frontend:**
+### Can't connect to database
 ```bash
-NEXT_PUBLIC_API_URL=https://api.your-domain.com
-NEXT_PUBLIC_WS_URL=wss://api.your-domain.com
+# Check if PostgreSQL is running
+docker-compose -f docker-compose.prod.yml ps postgres
+
+# Check database logs
+docker-compose -f docker-compose.prod.yml logs postgres
 ```
+
+### WebSocket connection fails
+- Make sure your CORS_ORIGINS includes your frontend URL
+- For HTTPS sites, use `wss://` instead of `ws://` in NEXT_PUBLIC_WS_URL
+- Check firewall settings allow WebSocket connections
+
+### Microphone not working
+- Browsers require HTTPS for microphone access (except localhost)
+- Make sure users click "Allow" when prompted
+- Check browser console for errors
 
 ---
 
-## 📊 Monitoring & Logging
+## 🔐 Security Checklist
 
-### Recommended Tools:
+Before sharing with others:
 
-**Application Monitoring:**
-- Sentry (errors)
-- LogRocket (session replay)
-- DataDog (APM)
-
-**Infrastructure:**
-- CloudWatch (AWS)
-- Railway Metrics
-- Vercel Analytics
-
-**Setup Example (Sentry):**
-```bash
-npm install @sentry/nextjs
-npx @sentry/wizard -i nextjs
-
-# Add to backend:
-pip install sentry-sdk[fastapi]
-```
-
----
-
-## 🚦 Health Checks
-
-Add to production:
-
-**Backend `/health`:**
-```python
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "database": check_db_connection(),
-        "redis": check_redis_connection(),
-        "deepgram": deepgram_service.is_enabled(),
-        "ai": ai_service.is_enabled()
-    }
-```
-
-**Frontend Health:**
-- Use Vercel's built-in health checks
-- Or add `/api/health` endpoint
-
----
-
-## 🔄 CI/CD Pipeline
-
-### GitHub Actions Example
-
-Create `.github/workflows/deploy.yml`:
-```yaml
-name: Deploy
-
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Deploy to Railway
-        run: |
-          npm install -g @railway/cli
-          railway up
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Deploy to Vercel
-        run: |
-          npm install -g vercel
-          vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
-```
+- [ ] Changed `JWT_SECRET` to a random string
+- [ ] Changed `POSTGRES_PASSWORD` to a strong password
+- [ ] Set up HTTPS (for public deployment)
+- [ ] Updated CORS_ORIGINS to your actual domain
+- [ ] Added Deepgram API key
+- [ ] (Optional) Added OpenAI/Anthropic API key
+- [ ] Tested the app works from another device
 
 ---
 
 ## 💰 Cost Estimates
 
-### Free Tier (Development):
-- Vercel: Free (hobby)
-- Railway: $5/month (500 hours)
-- Deepgram: $200 credit
-- OpenAI: Pay as you go (~$5-20/month)
-**Total: ~$10-25/month**
-
-### Small Production:
-- Vercel Pro: $20/month
-- Railway: $20/month
-- Database: $10/month
-- APIs: $50/month
-**Total: ~$100/month**
-
-### Enterprise:
-- AWS ECS: $50-100/month
-- RDS: $50/month
-- ElastiCache: $30/month
-- APIs: $200/month
-**Total: ~$300-400/month**
+| Platform | Monthly Cost | Setup Difficulty |
+|----------|--------------|------------------|
+| Railway | $5-10 | ⭐ Easy |
+| DigitalOcean | $12+ | ⭐⭐ Medium |
+| AWS/GCP | $10-30 | ⭐⭐⭐ Hard |
+| Local Network | Free | ⭐ Very Easy |
 
 ---
 
-## 📱 Post-Deployment
+## 🆘 Need Help?
 
-### 1. Test Everything
+Common issues:
+
+1. **"Cannot connect to backend"**
+   - Check NEXT_PUBLIC_API_URL matches your backend URL
+   - Verify CORS_ORIGINS includes your frontend URL
+
+2. **"Database connection failed"**
+   - Ensure PostgreSQL service is running
+   - Check DATABASE_URL is correct
+
+3. **"Microphone not detected"**
+   - Use HTTPS (required for microphone access)
+   - Check browser permissions
+
+4. **Friends can't access**
+   - Verify firewall rules allow traffic on ports 3000, 8000
+   - Check the URL you shared is correct
+   - For local network: ensure they're on same WiFi
+
+---
+
+## 📊 Monitoring Your Deployment
+
+### Check Service Status
 ```bash
-# Backend
-curl https://api.your-domain.com/health
-
-# Frontend
-open https://your-domain.com
-
-# WebSocket
-wscat -c wss://api.your-domain.com/ws/test-123
+docker-compose -f docker-compose.prod.yml ps
 ```
 
-### 2. Monitor Logs
+### View Logs
 ```bash
-# Railway
-railway logs
+# All services
+docker-compose -f docker-compose.prod.yml logs -f
 
-# Vercel
-vercel logs
-
-# Docker
-docker-compose logs -f
+# Specific service
+docker-compose -f docker-compose.prod.yml logs -f backend
 ```
 
-### 3. Setup Alerts
-- Configure uptime monitoring (Uptime Robot)
-- Set up error alerts (Sentry)
-- Monitor API usage
-- Track database performance
-
----
-
-## 🆘 Troubleshooting
-
-### Common Issues:
-
-**WebSocket not connecting:**
-- Check CORS settings
-- Verify WSS (not WS) in production
-- Check load balancer timeout settings
-
-**Database connection fails:**
-- Verify connection string
-- Check firewall rules
-- Ensure database is in same region
-
-**High latency:**
-- Enable CDN
-- Optimize database queries
-- Add Redis caching
-- Use connection pooling
-
----
-
-## 🎉 Success Checklist
-
-After deployment:
-
-- [ ] Frontend loads at your domain
-- [ ] Backend API responds
-- [ ] WebSocket connects
-- [ ] Audio streaming works
-- [ ] Transcription works
-- [ ] Database saves calls
-- [ ] Call history displays
-- [ ] SSL/HTTPS enabled
-- [ ] Monitoring configured
-- [ ] Backups enabled
-- [ ] Documentation updated
-
----
-
-## 📞 Support
-
-If you need help:
-1. Check logs first
-2. Review error messages
-3. Test locally with same config
-4. Check API service status
-5. Review firewall/security rules
-
----
-
-**Your app is production-ready!** 🚀
-
-Choose your deployment method and follow the guide above. All the code is already optimized for production deployment.
+### Restart Services
+```bash
+docker-compose -f docker-compose.prod.yml restart
 ```
+
+### Stop Everything
+```bash
+docker-compose -f docker-compose.prod.yml down
+```
+
+### Update and Redeploy
+```bash
+git pull
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+---
+
+## 🎉 You're Done!
+
+Your app is now accessible to your friends. Share the URL and they can start using it from their Chrome browsers!
+
+**Pro Tip**: For the best experience, use Railway or a VPS with HTTPS. This ensures:
+- Secure connections
+- Microphone access works everywhere
+- Professional looking URLs
+- Always accessible (not dependent on your computer being on)
