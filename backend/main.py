@@ -2,6 +2,11 @@
 Main FastAPI application entry point for Sales Call Feedback AI
 WITH DATABASE INTEGRATION
 """
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -14,7 +19,7 @@ from services.audio.audio_handler import audio_handler
 from services.transcription.deepgram_service import deepgram_service
 from services.call_service import CallService
 from models.database import get_db, engine, Base
-from api.routes import calls
+from api.routes import calls, analysis, dashboard
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -43,6 +48,8 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(calls.router, prefix="/api/calls", tags=["calls"])
+app.include_router(analysis.router, prefix="/api/analyze", tags=["analysis"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 
 @app.get("/")
@@ -250,4 +257,4 @@ async def list_sessions():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main_with_db:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
