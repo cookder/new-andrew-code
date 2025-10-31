@@ -19,6 +19,16 @@ class Call(Base):
     duration_seconds = Column(Float, nullable=True)
     total_bytes = Column(Integer, default=0)
     chunks_count = Column(Integer, default=0)
+    title = Column(String(255), nullable=True)
+    account_name = Column(String(255), nullable=True, index=True)
+    account_slug = Column(String(255), nullable=True, index=True)
+    meeting_type = Column(String(100), nullable=True)
+    opportunity_stage = Column(String(50), nullable=True, index=True)
+    technical_win = Column(String(50), nullable=True)
+    decision_maker_alignment = Column(String(50), nullable=True)
+    customer_timeline = Column(String(120), nullable=True)
+    competitor_position = Column(String(50), nullable=True)
+    ae_assessment = Column(Text, nullable=True)
     status = Column(String(50), default="active")  # active, completed, failed
 
     # Relationships
