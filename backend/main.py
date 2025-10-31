@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 import uvicorn
 import logging
 import json
+import os
 
 from utils.websocket_manager import manager
 from services.audio.audio_handler import audio_handler
@@ -38,9 +39,22 @@ app = FastAPI(
 )
 
 # CORS configuration
+raw_origins = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [
+    origin.strip()
+    for origin in raw_origins.split(",")
+    if origin.strip()
+]
+
+if not allowed_origins:
+    # Fallback to the deployed frontend domain if not provided
+    allowed_origins = ["https://salescallintelligence.up.railway.app"]
+
+logger.info("CORS allowed origins: %s", allowed_origins)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure based on environment
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
