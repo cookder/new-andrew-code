@@ -1,9 +1,9 @@
-import CallInterface from '../components/CallInterface/CallInterface';
+import SalesIntelligenceDashboard from '../components/SalesIntelligence/Dashboard';
 
 export default function Home() {
   return (
-    <main className="min-h-screen py-12">
-      <CallInterface />
+    <main className="min-h-screen">
+      <SalesIntelligenceDashboard />
     </main>
   );
 }
