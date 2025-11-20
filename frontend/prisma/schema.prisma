@@ -1,0 +1,240 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Account {
+  id          String        @id @default(uuid())
+  name        String
+  industry    String?
+  companySize Int?
+  website     String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  contacts      Contact[]
+  opportunities Opportunity[]
+
+  @@map("accounts")
+}
+
+model Contact {
+  id              String   @id @default(uuid())
+  firstName       String
+  lastName        String
+  title           String?
+  email           String?
+  phone           String?
+  stakeholderType String   @default("Unknown") // Economic Buyer, Technical Buyer, Champion, Influencer, End User, Unknown
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  primaryOpportunities   Opportunity[] @relation("PrimaryContact")
+  economicBuyerFor       MEDDPICCAnalysis[] @relation("EconomicBuyer")
+  championFor            MEDDPICCAnalysis[] @relation("Champion")
+
+  @@map("contacts")
+}
+
+model Opportunity {
+  id                  String   @id @default(uuid())
+  name                String
+  amount              Float?
+  expectedCloseDate   DateTime?
+  currentStage        String   @default("Discovery") // Discovery, Demo, Validating Business Case, Negotiating $, Finalizing Closure, Closed Won, Closed Lost
+  stageHistory        String   @default("[]") // JSON array of {stage, timestamp}
+  overallHealthScore  Int      @default(0) // 0-100
+  lastAnalyzed        DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  primaryContactId String?
+  primaryContact   Contact? @relation("PrimaryContact", fields: [primaryContactId], references: [id])
+
+  documents          Document[]
+  meddpiccAnalysis   MEDDPICCAnalysis?
+  bantAnalysis       BANTAnalysis?
+  aiInsights         AIInsight[]
+  analysisSnapshots  AnalysisSnapshot[]
+
+  @@map("opportunities")
+}
+
+model Document {
+  id              String   @id @default(uuid())
+  documentType    String   // Transcript, Email Thread, Other
+  fileName        String
+  filePath        String
+  uploadDate      DateTime @default(now())
+  fileContent     String   // Extracted text content
+  processingStatus String  @default("Pending") // Pending, Processing, Completed, Error
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model MEDDPICCAnalysis {
+  id            String   @id @default(uuid())
+
+  // Metrics
+  metricsValue       String?
+  metricsConfidence  Int      @default(0)
+  metricsUpdated     DateTime @default(now())
+  metricsSources     String   @default("[]") // JSON array
+
+  // Economic Buyer
+  economicBuyerId       String?
+  economicBuyerValue    String?
+  economicBuyerConfidence Int   @default(0)
+  economicBuyerUpdated   DateTime @default(now())
+  economicBuyerSources   String   @default("[]")
+  economicBuyer         Contact? @relation("EconomicBuyer", fields: [economicBuyerId], references: [id])
+
+  // Decision Criteria
+  decisionCriteriaValue       String?
+  decisionCriteriaConfidence  Int      @default(0)
+  decisionCriteriaUpdated     DateTime @default(now())
+  decisionCriteriaSources     String   @default("[]")
+
+  // Decision Process
+  decisionProcessValue       String?
+  decisionProcessConfidence  Int      @default(0)
+  decisionProcessUpdated     DateTime @default(now())
+  decisionProcessSources     String   @default("[]")
+
+  // Identify Pain
+  painValue       String?
+  painConfidence  Int      @default(0)
+  painUpdated     DateTime @default(now())
+  painSources     String   @default("[]")
+
+  // Champion
+  championId         String?
+  championValue      String?
+  championConfidence Int      @default(0)
+  championUpdated    DateTime @default(now())
+  championSources    String   @default("[]")
+  champion          Contact? @relation("Champion", fields: [championId], references: [id])
+
+  // Competition
+  competitionValue       String?
+  competitionConfidence  Int      @default(0)
+  competitionUpdated     DateTime @default(now())
+  competitionSources     String   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("meddpicc_analyses")
+}
+
+model BANTAnalysis {
+  id String @id @default(uuid())
+
+  // Budget
+  budgetValue       String?
+  budgetConfidence  Int      @default(0)
+  budgetUpdated     DateTime @default(now())
+  budgetSources     String   @default("[]")
+
+  // Authority
+  authorityValue       String?
+  authorityConfidence  Int      @default(0)
+  authorityUpdated     DateTime @default(now())
+  authoritySources     String   @default("[]")
+
+  // Need
+  needValue       String?
+  needConfidence  Int      @default(0)
+  needUpdated     DateTime @default(now())
+  needSources     String   @default("[]")
+
+  // Timeline
+  timelineValue       String?
+  timelineConfidence  Int      @default(0)
+  timelineUpdated     DateTime @default(now())
+  timelineSources     String   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("bant_analyses")
+}
+
+model AIInsight {
+  id          String   @id @default(uuid())
+
+  // Red Flags (stored as JSON array)
+  redFlags    String   @default("[]") // [{severity, description, evidence, confidence, sources}]
+
+  // Next Best Actions (stored as JSON array)
+  nextActions String   @default("[]") // [{priority, action, rationale, confidence}]
+
+  // Other insights
+  stakeholderGaps          String?  // Text description
+  stakeholderGapsConfidence Int     @default(0)
+
+  budgetTimelineSignals          String?  // Text or JSON
+  budgetTimelineSignalsConfidence Int     @default(0)
+
+  painPointQualification          String?
+  painPointQualificationConfidence Int     @default(0)
+
+  competitiveIntelligence          String?  // JSON array
+  competitiveIntelligenceConfidence Int     @default(0)
+
+  stageRecommendation           String?
+  stageRecommendationRationale  String?
+  stageRecommendationConfidence Int        @default(0)
+
+  generatedAt DateTime @default(now())
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("ai_insights")
+}
+
+model AnalysisSnapshot {
+  id                  String   @id @default(uuid())
+
+  // Snapshot of MEDDPICC scores at this point in time
+  meddpiccSnapshot    String   // JSON snapshot
+
+  // Snapshot of BANT scores at this point in time
+  bantSnapshot        String   // JSON snapshot
+
+  // Health score at this time
+  healthScore         Int
+
+  // Timestamp
+  createdAt           DateTime @default(now())
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("analysis_snapshots")
+}
